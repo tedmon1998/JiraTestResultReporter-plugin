@@ -287,7 +287,8 @@ public class JiraTestDataPublisher extends TestDataPublisher {
     public String getJiraUrl() {
         return getDescriptor().getJiraUrl();
     }
-    
+
+    @Symbol("jiraTestResultReporter")
 	@Extension
 	public static class JiraTestDataPublisherDescriptor extends Descriptor<TestDataPublisher> {
         /**
