@@ -1,0 +1,26 @@
+<j:choose>
+    <j:when test="${ it.issueKey == null and it.isTestFailing() == true }">
+        <img src="${imagesURL}/16x16/document_add.png" onClick="hideshow(document.getElementById('jira-${it}'))"
+            height="16" width="16" style="cursor:pointer" /> No issue
+        <img src="${imagesURL}/spinner.gif" id="spinner-${it}" style="display:none" />
+        <div id="jira-${it}" style="display:none">
+            <a href="#jira"
+                onClick="createNewIssue(document.getElementById('spinner-${it}'), '${it}', document.getElementById('jiraErrors-${it}'))">Create
+                new issue</a><br />
+            Or <input field="key" id="issueKeyInput-${it}" type="text" value="${it.issueKey}" />
+            <img src="${resURL}/plugin/JiraTestResultReporter/submit.png" height="16" width="16" style="cursor:pointer"
+                onClick="doSubmit(document.getElementById('issueKeyInput-${it}'), document.getElementById('spinner-${it}'), '${it}', document.getElementById('jiraErrors-${it}'))" />
+            <st:include page="helpIssueKeyInput.jelly" />
+            <div id="jiraErrors-${it}" />
+        </div>
+    </j:when>
+    <j:when test="${ it.issueKey != null }">
+        <st:nbsp /><img src="${resURL}/plugin/JiraTestResultReporter/remove.png" onClick="doClear('${it}')" height="16"
+            width="16" style="cursor:pointer" />
+        <st:nbsp />
+        <a href="${it.issueUrl}" title="${it.issueSummary}" target="_blank">${it.issueKey}</a>
+        <st:nbsp />
+        <st:include page="issueStatus.jelly" />
+    </j:when>
+</j:choose>
+<st:nbsp />
