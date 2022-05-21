@@ -160,6 +160,7 @@ public class JiraTestAction extends TestAction implements ExtensionPoint, Descri
      * 
      * @return
      */
+    @JavaScriptMethod
     public String getIssueKey() {
         return issueKey;
     }
@@ -185,23 +186,37 @@ public class JiraTestAction extends TestAction implements ExtensionPoint, Descri
     }
 
     /**
+     * Getter for the issue URL and Summary, called from badge.jelly
+     * 
+     * @return
+     */
+    @JavaScriptMethod
+    public JSONObject getIssueUrlAndSummary() {
+        JSONObject json = new JSONObject();
+        json.put("url", JiraUtils.getIssueURL(JiraUtils.getJiraDescriptor().getJiraUrl(), issueKey));
+        json.put("summary", JiraUtils.getJiraDescriptor().getRestClient().getIssueClient().getIssue(issueKey).claim()
+                .getSummary());
+        return json;
+    }
+
+    /**
      * Method for linking an issue to this test, called from badge.jelly
      * 
      * @param issueKey the key of the issue (ex. TST-256)
      * @return null if everything was Ok, an object with the error message if not
      */
     @JavaScriptMethod
-    public FormValidation setIssueKey(String issueKey) {
+    public String setIssueKey(String issueKey) {
         synchronized (test.getId()) {
             if (TestToIssueMapping.getInstance().getTestIssueKey(job, test.getId()) != null) {
-                return null;
+                return issueKey;
             }
             if (isValidIssueKey(issueKey)) {
                 this.issueKey = issueKey;
                 TestToIssueMapping.getInstance().addTestToIssueMapping(job, test.getId(), issueKey);
-                return null;
+                return issueKey;
             }
-            return FormValidation.error("Not a valid issue key");
+            return "Not a valid issue key";
         }
     }
 
@@ -270,7 +285,7 @@ public class JiraTestAction extends TestAction implements ExtensionPoint, Descri
      * @return null if everything was Ok, an object with the error message if not
      */
     @JavaScriptMethod
-    public FormValidation createIssue() {
+    public String createIssue() {
         synchronized (test.getId()) { // avoid creating duplicated issues
             if (TestToIssueMapping.getInstance().getTestIssueKey(job, test.getId()) != null) {
                 return null;
@@ -278,10 +293,11 @@ public class JiraTestAction extends TestAction implements ExtensionPoint, Descri
 
             try {
                 String issueKey = JiraUtils.createIssueInput(project, test, testData.getEnvVars());
-                return setIssueKey(issueKey);
+                setIssueKey(issueKey);
+                return issueKey;
             } catch (RestClientException e) {
                 JiraUtils.logError("Error when creating issue", e);
-                return FormValidation.error(JiraUtils.getErrorMessage(e, "\n"));
+                return e.toString();
             }
         }
     }
@@ -304,4 +320,5 @@ public class JiraTestAction extends TestAction implements ExtensionPoint, Descri
         }
         return true;
     }
+
 }

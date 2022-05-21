@@ -7,18 +7,20 @@
         */
         if (typeof proxyMap === 'undefined') {
             var proxyMap = [];
+            var proxyDictionary = {};
         }
 
         if (typeof count == "undefined") var count = 0;
         else count++;
         var rootId = "root" + count;
+
+        proxyMap["${it}"] = <st:bind value="${it}" />;
+        proxyDictionary[rootId + "-it"] = "${it}";
+        proxyDictionary[rootId + "-proxyMap"] = proxyMap["${it}"];
+        proxyDictionary[rootId + "-resURL"] = "${resURL}";
     </script>
 
     <div id="root">
-        <script>
-            proxyMap["${it}"] = <st:bind value="${it}" />;
-        </script>
-
         <j:choose>
             <j:when test="${ it.issueKey == null and it.isTestFailing() == true }">
                 <img src="${imagesURL}/16x16/document_add.png" onClick="hideshow(document.getElementById('jira-${it}'))"
@@ -26,21 +28,21 @@
                 <img src="${imagesURL}/spinner.gif" id="spinner-${it}" style="display:none" />
                 <div id="jira-${it}" style="display:none">
                     <a id="link" href="#jira"
-                        onClick="createNewIssue(this.id, document.getElementById('spinner-${it}'), '${it}', document.getElementById('jiraErrors-${it}'))">Create
+                        onClick="createNewIssue(this.id, document.getElementById('spinner-${it}'), document.getElementById('jiraErrors-${it}'))">Create
                         new issue</a><br />
                     Or <input field="key" id="issueKeyInput-${it}" type="text" value="${it.issueKey}" />
                     <img id="link" src="${resURL}/plugin/JiraTestResultReporter/submit.png" height="16" width="16"
                         style="cursor:pointer"
-                        onClick="doSubmit(this.id, document.getElementById('issueKeyInput-${it}'), document.getElementById('spinner-${it}'), '${it}', document.getElementById('jiraErrors-${it}'))" />
+                        onClick="doSubmit(this.id, document.getElementById('issueKeyInput-${it}'), document.getElementById('spinner-${it}'), document.getElementById('jiraErrors-${it}'))" />
                     <st:include page="helpIssueKeyInput.jelly" />
                     <div id="jiraErrors-${it}" />
                 </div>
             </j:when>
             <j:when test="${ it.issueKey != null }">
                 <st:nbsp /><img id="link" src="${resURL}/plugin/JiraTestResultReporter/remove.png"
-                    onClick="doClear(this.id, '${it}')" height="16" width="16" style="cursor:pointer" />
+                    onClick="doClear(this.id)" height="16" width="16" style="cursor:pointer" />
                 <st:nbsp />
-                <a href="${it.issueUrl}" title="${it.issueSummary}" target="_blank">${it.issueKey}</a>
+                <a id="issue-link" href="${it.issueUrl}" title="${it.issueSummary}" target="_blank">${it.issueKey}</a>
                 <st:nbsp />
                 <st:include page="issueStatus.jelly" />
             </j:when>
@@ -50,13 +52,68 @@
 
 
     <script>
-        document.querySelectorAll("#link").forEach(e => e.id = rootId);
-        document.getElementById("root").id = rootId;
+        function changeId(newId = rootId) {
+            document.querySelectorAll("#link").forEach(e => e.id = newId);
+            document.querySelectorAll("#issue-link").forEach(e => e.id = "issue-" + newId);
+            document.getElementById("root").id = newId;
+        }
+        changeId();
 
-        async function updateRoot(selector) {
-            var html = await (await fetch(location.href)).text();
-            var newdoc = new DOMParser().parseFromString(html, 'text/html');
-            document.querySelector(selector).outerHTML = newdoc.querySelector("div#root").outerHTML;
+        async function updateRoot(selector, idElement, key = null, issueUrl = null, issueSummary = null) {
+            /**
+             * Block update without page reload,
+             * takes the selector of the main block (parent), main block id, issue key, issue url and issue summary
+            */
+
+            const html = await (await fetch(location.href)).text();
+            const newdoc = new DOMParser().parseFromString(html, 'text/html');
+            const resURL = proxyDictionary[idElement + "-resURL"];
+            const it = proxyDictionary[idElement + "-it"];
+            if (key !== null) {
+                proxyDictionary[idElement + "-proxyMap"].getIssueUrlAndSummary(t => {
+                    const responseObject = t.responseObject();
+                    document.querySelector(selector).outerHTML = `<div id="root">
+                                                                    <img onclick="doClear(this.id)"
+                                                                    src="`+ resURL + `/plugin/JiraTestResultReporter/remove.png" width="16" style="cursor:pointer" id="link"
+                                                                    height="16" />
+                                                                    <a id="issue-link" href="`+ responseObject.url + `" title="` + responseObject.summary + `"
+                                                                    target="_blank">issue-key</a><span
+                                                                    style="padding: 2px 4px 1px 4px; border: 1px solid; border-radius: 3px; vertical-align: text-bottom; 
+                                                                    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 12em; background-color: #fff; 
+                                                                    border-color: #e4e8ed; color: #4a6785;">К выполнению</span>
+                                                                </div>`;
+                    const issueLink = document.getElementById("issue-link");
+                    if (issueLink !== null) issueLink.innerHTML = key;
+                    changeId(idElement);
+                })
+            } else {
+                document.querySelector(selector).outerHTML = `<div id="root">
+                                                                    <img onclick="hideshow(document.getElementById('jira-`+ it + `'))"
+                                                                        src="`+ resURL + `/images/16x16/document_add.png" width="16" style="cursor:pointer" height="16" /> No issue
+                                                                    <img src="`+ resURL + `/images/spinner.gif" style="display:none"
+                                                                        id="spinner-`+ it + `" />
+                                                                    <div style="display:none" id="jira-`+ it + `"><a
+                                                                            onclick="createNewIssue(this.id, document.getElementById('spinner-`+ it + `'), 
+                                                                            document.getElementById('jiraErrors-`+ it + `'))"
+                                                                            id="link" href="#jira">Create
+                                                                            new issue</a><br />
+                                                                        Or <input field="key" id="issueKeyInput-`+ it + `"
+                                                                            type="text" />
+                                                                            <img onclick="doSubmit(this.id, document.getElementById('issueKeyInput-`+ it + `'), 
+                                                                            document.getElementById('spinner-`+ it + `'), 
+                                                                            document.getElementById('jiraErrors-`+ it + `'))"
+                                                                            src="`+ resURL + `/plugin/JiraTestResultReporter/submit.png" width="16" style="cursor:pointer" id="link"
+                                                                            height="16" />
+                                                                            <img onclick="hideshow(document.getElementById('help-issueKeyInput-`+ it + `'))"
+                                                                            src="`+ resURL + `/images/16x16/help.png" style="width: 16px; height: 16px; cursor:pointer" />
+                                                                        <div style="display:none"
+                                                                            id="help-issueKeyInput-`+ it + `" class="help">
+                                                                            Link an existing issue to this test. Insert a valid issue key. (ex. TST-256)</div>
+                                                                        <div id="jiraErrors-`+ it + `"></div>
+                                                                    </div>
+                                                                </div>`;
+                changeId(idElement);
+            }
         }
 
         function hideshow(which) {
@@ -69,44 +126,47 @@
         }
 
 
-        function doSubmit(idElement, issueLink, spinner, proxyString, errorsDiv) {
+        function doSubmit(idElement, issueLink, spinner, errorsDiv) {
             if (!issueLink.value)
                 return;
             spinner.style.display = "inline";
-            var proxy = proxyMap[proxyString];
-            proxy.setIssueKey(issueLink.value, function (t) {
+            // var proxy = proxyMap[proxyString];
+            proxyDictionary[idElement + "-proxyMap"].setIssueKey(issueLink.value, function (t) {
                 if (t.responseText != "null") {
-                    spinner.style.display = "none"
-                    applyErrorMessage(errorsDiv, t);
-                }
-                else {
-                    updateRoot("div#" + idElement);
+                    if (t.status === 200) {
+                        updateRoot("div#" + idElement, idElement, t.responseObject());
+                    }
+                    else {
+                        spinner.style.display = "none"
+                        applyErrorMessage(errorsDiv, t);
+                    }
                 }
             });
         }
 
-        function doClear(idElement, proxyString) {
-            var proxy = proxyMap[proxyString];
-            proxy.clearIssueKey(function (t) {
-                updateRoot("div#" + idElement);
+        function doClear(idElement) {
+            proxyDictionary[idElement + "-proxyMap"].clearIssueKey(function (t) {
+                updateRoot("div#" + idElement, idElement);
             })
         }
 
-        function createNewIssue(idElement, spinner, proxyString, errorsDiv) {
+        function createNewIssue(idElement, spinner, errorsDiv) {
             spinner.style.display = "inline";
-            var proxy = proxyMap[proxyString];
+            // var proxy = proxyMap[proxyString];
             var socketTimeout = setTimeout(function () {
                 spinner.style.display = "none";
                 errorsDiv.innerHTML = "Error: Socket Timeout. The issue was probably created, but the server did not respond in a timely manner. Check JIRA to avoid creating duplicated issues.";
             }, 30000);
-            proxy.createIssue(function (t) {
+            proxyDictionary[idElement + "-proxyMap"].createIssue(function (t) {
                 clearTimeout(socketTimeout);
                 if (t.responseText != "null") {
-                    spinner.style.display = "none";
-                    applyErrorMessage(errorsDiv, t);
-                }
-                else {
-                    updateRoot("div#" + idElement);
+                    if (t.status === 200) {
+                        updateRoot("div#" + idElement, idElement, t.responseObject());
+                    }
+                    else {
+                        spinner.style.display = "none";
+                        applyErrorMessage(errorsDiv, t);
+                    }
                 }
             });
         }
