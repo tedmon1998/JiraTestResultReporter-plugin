@@ -77,10 +77,7 @@
                                                                     src="`+ resURL + `/plugin/JiraTestResultReporter/remove.png" width="16" style="cursor:pointer" id="link"
                                                                     height="16" />
                                                                     <a id="issue-link" href="`+ responseObject.url + `" title="` + responseObject.summary + `"
-                                                                    target="_blank">issue-key</a><span
-                                                                    style="padding: 2px 4px 1px 4px; border: 1px solid; border-radius: 3px; vertical-align: text-bottom; 
-                                                                    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 12em; background-color: #fff; 
-                                                                    border-color: #e4e8ed; color: #4a6785;"></span>
+                                                                    target="_blank">issue-key</a>
                                                                 </div>`;
                     const issueLink = document.getElementById("issue-link");
                     if (issueLink !== null) issueLink.innerHTML = key;
