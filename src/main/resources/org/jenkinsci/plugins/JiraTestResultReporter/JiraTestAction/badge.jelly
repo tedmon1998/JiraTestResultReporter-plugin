@@ -122,7 +122,6 @@
                 which.style.display = "block";
         }
 
-
         function doSubmit(idElement, issueLink, spinner, errorsDiv) {
             if (!issueLink.value)
                 return;
