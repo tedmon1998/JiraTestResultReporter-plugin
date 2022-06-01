@@ -186,7 +186,7 @@ public class JiraTestAction extends TestAction implements ExtensionPoint, Descri
     }
 
     /**
-     * Getter for the issue URL and Summary, called from badge.jelly
+     * Getter for the issue URL, Summary and IssieStatus, called from badge.jelly
      * 
      * @return
      */
@@ -196,6 +196,7 @@ public class JiraTestAction extends TestAction implements ExtensionPoint, Descri
         json.put("url", JiraUtils.getIssueURL(JiraUtils.getJiraDescriptor().getJiraUrl(), issueKey));
         json.put("summary", JiraUtils.getJiraDescriptor().getRestClient().getIssueClient().getIssue(issueKey).claim()
                 .getSummary());
+        json.put("status", JiraUtils.getJiraDescriptor().getRestClient().getIssueClient().getIssue(issueKey).claim().getStatus().getName());
         return json;
     }
 
