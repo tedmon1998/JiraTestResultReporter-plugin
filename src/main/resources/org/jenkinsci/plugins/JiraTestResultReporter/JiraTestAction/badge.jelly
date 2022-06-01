@@ -72,13 +72,7 @@
             if (key !== null) {
                 proxyDictionary[idElement + "-proxyMap"].getIssueUrlAndSummary(t => {
                     const responseObject = t.responseObject();
-                    document.querySelector(selector).outerHTML = `<div id="root">
-                                                                    <img onclick="doClear(this.id)"
-                                                                    src="`+ resURL + `/plugin/JiraTestResultReporter/remove.png" width="16" style="cursor:pointer" id="link"
-                                                                    height="16" />
-                                                                    <a id="issue-link" href="`+ responseObject.url + `" title="` + responseObject.summary + `"
-                                                                    target="_blank">issue-key</a>
-                                                                </div>`;
+                    document.querySelector(selector).outerHTML = templateWithIssue();
                     const issueLink = document.getElementById("issue-link");
                     if (issueLink !== null) issueLink.innerHTML = key;
                     changeId(idElement);
@@ -111,6 +105,21 @@
                                                                 </div>`;
                 changeId(idElement);
             }
+        }
+
+        function templateWithIssue() {
+
+            return (`<div id="root">
+                    <img onclick="doClear(this.id)"
+                    src="`+ resURL + `/plugin/JiraTestResultReporter/remove.png" width="16" style="cursor:pointer" id="link"
+                    height="16" />
+                    <a id="issue-link" href="`+ responseObject.url + `" title="` + responseObject.summary + `"
+                    target="_blank">issue-key</a>
+                    </div>`)
+
+        }
+        function templateNoIssue() {
+
         }
 
         function hideshow(which) {
