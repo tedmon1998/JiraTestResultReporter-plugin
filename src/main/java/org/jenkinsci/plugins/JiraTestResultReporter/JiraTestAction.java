@@ -191,7 +191,7 @@ public class JiraTestAction extends TestAction implements ExtensionPoint, Descri
      * @return
      */
     @JavaScriptMethod
-    public JSONObject getIssueUrlAndSummary() {
+    public JSONObject getIssueUrlSummaryStatus() {
         JSONObject json = new JSONObject();
         json.put("url", JiraUtils.getIssueURL(JiraUtils.getJiraDescriptor().getJiraUrl(), issueKey));
         json.put("summary", JiraUtils.getJiraDescriptor().getRestClient().getIssueClient().getIssue(issueKey).claim()

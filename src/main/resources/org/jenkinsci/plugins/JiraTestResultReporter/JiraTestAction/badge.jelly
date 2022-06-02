@@ -59,44 +59,43 @@
         }
         changeId();
 
-        function templateWithIssue() {
-
-            return (`<div id="root">
-                    <img onclick="doClear(this.id)"
-                    src="`+ resURL + `/plugin/JiraTestResultReporter/remove.png" width="16" style="cursor:pointer" id="link"
-                    height="16" />
-                    <a id="issue-link" href="`+ responseObject.url + `" title="` + responseObject.summary + `"
-                    target="_blank">issue-key</a>
-                    </div>`)
-
+        function templateWithIssue(resURL, responseObject) {
+            return `<div id="root">
+                        <img onclick="doClear(this.id)"
+                        src="`+ resURL + `/plugin/JiraTestResultReporter/remove.png" width="16" style="cursor:pointer" id="link"
+                        height="16" />
+                        <a id="issue-link" href="`+ responseObject.url + `" title="` + responseObject.summary + `"
+                        target="_blank">issue-key</a>
+                        <span style="margin: 0 0 0 4px; padding: 2px 4px 1px 4px; border: 1px solid; border-radius: 3px; vertical-align: text-bottom; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 12em; background-color: #fff; border-color: #e4e8ed; color: #4a6785;">` + responseObject.status + `</span>
+                    </div>`
         }
-        function templateNoIssue() {
-            return (`<div id="root">
-            <img onclick="hideshow(document.getElementById('jira-`+ it + `'))"
-                src="`+ resURL + `/images/16x16/document_add.png" width="16" style="cursor:pointer" height="16" /> No issue
-            <img src="`+ resURL + `/images/spinner.gif" style="display:none"
-                id="spinner-`+ it + `" />
-            <div style="display:none" id="jira-`+ it + `"><a
-                    onclick="createNewIssue(this.id, document.getElementById('spinner-`+ it + `'), 
-                    document.getElementById('jiraErrors-`+ it + `'))"
-                    id="link" href="#jira">Create
-                    new issue</a><br />
-                Or <input field="key" id="issueKeyInput-`+ it + `"
-                    type="text" />
-                    <img onclick="doSubmit(this.id, document.getElementById('issueKeyInput-`+ it + `'), 
-                    document.getElementById('spinner-`+ it + `'), 
-                    document.getElementById('jiraErrors-`+ it + `'))"
-                    src="`+ resURL + `/plugin/JiraTestResultReporter/submit.png" width="16" style="cursor:pointer" id="link"
-                    height="16" />
-                    <img onclick="hideshow(document.getElementById('help-issueKeyInput-`+ it + `'))"
-                    src="`+ resURL + `/images/16x16/help.png" style="width: 16px; height: 16px; cursor:pointer" />
-                <div style="display:none"
-                    id="help-issueKeyInput-`+ it + `" class="help">
-                    Link an existing issue to this test. Insert a valid issue key. (ex. TST-256)</div>
-                <div id="jiraErrors-`+ it + `"></div>
-            </div>
-        </div>`)
 
+        function templateNoIssue(resURL, it) {
+            return `<div id="root">
+                        <img onclick="hideshow(document.getElementById('jira-`+ it + `'))"
+                            src="`+ resURL + `/images/16x16/document_add.png" width="16" style="cursor:pointer" height="16" /> No issue
+                        <img src="`+ resURL + `/images/spinner.gif" style="display:none"
+                            id="spinner-`+ it + `" />
+                        <div style="display:none" id="jira-`+ it + `"><a
+                                onclick="createNewIssue(this.id, document.getElementById('spinner-`+ it + `'), 
+                                document.getElementById('jiraErrors-`+ it + `'))"
+                                id="link" href="#jira">Create
+                                new issue</a><br />
+                            Or <input field="key" id="issueKeyInput-`+ it + `"
+                                type="text" />
+                                <img onclick="doSubmit(this.id, document.getElementById('issueKeyInput-`+ it + `'), 
+                                document.getElementById('spinner-`+ it + `'), 
+                                document.getElementById('jiraErrors-`+ it + `'))"
+                                src="`+ resURL + `/plugin/JiraTestResultReporter/submit.png" width="16" style="cursor:pointer" id="link"
+                                height="16" />
+                                <img onclick="hideshow(document.getElementById('help-issueKeyInput-`+ it + `'))"
+                                src="`+ resURL + `/images/16x16/help.png" style="width: 16px; height: 16px; cursor:pointer" />
+                            <div style="display:none"
+                                id="help-issueKeyInput-`+ it + `" class="help">
+                                Link an existing issue to this test. Insert a valid issue key. (ex. TST-256)</div>
+                            <div id="jiraErrors-`+ it + `"></div>
+                        </div>
+                    </div>`
         }
 
         async function updateRoot(selector, idElement, key = null, issueUrl = null, issueSummary = null) {
@@ -110,15 +109,15 @@
             const resURL = proxyDictionary[idElement + "-resURL"];
             const it = proxyDictionary[idElement + "-it"];
             if (key !== null) {
-                proxyDictionary[idElement + "-proxyMap"].getIssueUrlAndSummary(t => {
+                proxyDictionary[idElement + "-proxyMap"].getIssueUrlSummaryStatus(t => {
                     const responseObject = t.responseObject();
-                    document.querySelector(selector).outerHTML = templateWithIssue();
+                    document.querySelector(selector).outerHTML = templateWithIssue(resURL, responseObject);
                     const issueLink = document.getElementById("issue-link");
                     if (issueLink !== null) issueLink.innerHTML = key;
                     changeId(idElement);
                 })
             } else {
-                document.querySelector(selector).outerHTML = templateNoIssue();
+                document.querySelector(selector).outerHTML = templateNoIssue(resURL, it);
                 changeId(idElement);
             }
         }
