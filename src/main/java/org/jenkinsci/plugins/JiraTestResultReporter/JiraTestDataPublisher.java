@@ -596,6 +596,7 @@ public class JiraTestDataPublisher extends TestDataPublisher {
             }
             String projectKey = jiraPublisherJSON.getString("projectKey");
             Long issueType  = jiraPublisherJSON.getLong("issueType");
+            String storeCacheJobName = jiraPublisherJSON.getString("storeCacheJobName");
 
             // trying to create the issue
             final IssueRestClient issueClient = getRestClient().getIssueClient();
