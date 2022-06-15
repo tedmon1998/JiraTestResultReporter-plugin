@@ -87,6 +87,14 @@ public class JiraTestDataPublisher extends TestDataPublisher {
         return JobConfigMapping.getInstance().getProjectKey(getJobName());
     }
 
+    /**
+     * Getter for the store cache job name
+     * @return the store cache job name
+     */
+    public String getStoreCacheJobName() {
+        return JobConfigMapping.getInstance().getStoreCacheJobName(getJobName());
+    }
+
     public boolean getAutoRaiseIssue() {
         return JobConfigMapping.getInstance().getAutoRaiseIssue(getJobName());
     }
@@ -125,8 +133,8 @@ public class JiraTestDataPublisher extends TestDataPublisher {
      * @param issueType
      * @param storeCacheJobName
      */
-    @DataBoundConstructor
-    public JiraTestDataPublisher(List<AbstractFields> configs, String projectKey, String issueType,
+	@DataBoundConstructor
+	public JiraTestDataPublisher(List<AbstractFields> configs, String projectKey, String issueType,
                                  String storeCacheJobName,
                                  boolean autoRaiseIssue, boolean autoResolveIssue, boolean autoUnlinkIssue) {
 
@@ -470,7 +478,8 @@ public class JiraTestDataPublisher extends TestDataPublisher {
         public TestDataPublisher newInstance(StaplerRequest req, JSONObject json) throws FormException {
             String projectKey = json.getString("projectKey");
             String issueType  = json.getString("issueType");
-            metadataCache.removeCacheEntry(projectKey, issueType);
+            String storeCacheJobName = json.getString("storeCacheJobName");
+            metadataCache.removeCacheEntry(projectKey, issueType, storeCacheJobName);
             return super.newInstance(req, json);
         }
 

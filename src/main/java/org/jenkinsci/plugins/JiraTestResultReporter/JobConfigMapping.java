@@ -45,6 +45,7 @@ public class JobConfigMapping {
         public static final long serialVersionUID = 6509568994710878311L; //backwards compatibility
         protected String projectKey;
         protected Long issueType;
+        protected String storeCacheJobName;
         protected List<AbstractFields> configs;
         protected boolean autoRaiseIssue;
         protected boolean autoResolveIssue;
@@ -55,12 +56,14 @@ public class JobConfigMapping {
          * Constructor
          * @param projectKey
          * @param issueType
+         * @param storeCacheJobName
          * @param configs list with the configured fields
          */
-        public JobConfigEntry(String projectKey, Long issueType, List<AbstractFields> configs,
+        public JobConfigEntry(String projectKey, Long issueType, String storeCacheJobName, List<AbstractFields> configs,
                               boolean autoRaiseIssue, boolean autoResolveIssue, boolean autoUnlinkIssue) {
             this.projectKey = projectKey;
             this.issueType = issueType;
+            this.storeCacheJobName = storeCacheJobName;
             this.configs = configs;
             this.autoRaiseIssue = autoRaiseIssue;
             this.autoResolveIssue = autoResolveIssue;
@@ -82,6 +85,14 @@ public class JobConfigMapping {
          */
         public String getProjectKey() {
             return projectKey;
+        }
+
+        /**
+         * Getter for the store cache job name
+         * @return
+         */
+        public String getStoreCacheJobName() {
+            return storeCacheJobName;
         }
 
         /**
@@ -127,7 +138,7 @@ public class JobConfigMapping {
          * Constructor
          */
         public JobConfigEntryBuilder() {
-            super(null, null, new ArrayList<>(), false, false, false);
+            super(null, null, null, new ArrayList<>(), false, false, false);
         }
 
         public JobConfigEntryBuilder withProjectKey(String projectKey) {
@@ -317,17 +328,19 @@ public class JobConfigMapping {
      * Method for setting the last configuration made for a project
      * @param project
      * @param projectKey
+     * @param storeCacheJobName
      * @param issueType
      * @param configs
      */
     public synchronized void saveConfig(Job project,
                                         String projectKey,
                                         Long issueType,
+                                        String storeCacheJobName,
                                         List<AbstractFields> configs,
                                         boolean autoRaiseIssue,
                                         boolean autoResolveIssue,
                                         boolean autoUnlinkIssue) {
-        JobConfigEntry entry = new JobConfigEntry(projectKey, issueType, configs, autoRaiseIssue, autoResolveIssue, autoUnlinkIssue);
+        JobConfigEntry entry = new JobConfigEntry(projectKey, issueType, storeCacheJobName, configs, autoRaiseIssue, autoResolveIssue, autoUnlinkIssue);
         saveConfig(project, entry);
     }
 
@@ -380,6 +393,16 @@ public class JobConfigMapping {
     public String getProjectKey(Job project) {
         JobConfigEntry entry = getJobConfigEntry(project);
         return entry != null ? entry.getProjectKey() : null;
+    }
+
+    /**
+     * Getter for the last configured store cache job name
+     * @param project
+     * @return
+     */
+    public String getStoreCacheJobName(Job project) {
+        JobConfigEntry entry = getJobConfigEntry(project);
+        return entry != null ? entry.getStoreCacheJobName() : null;
     }
 
     public boolean getAutoRaiseIssue(Job project) {
