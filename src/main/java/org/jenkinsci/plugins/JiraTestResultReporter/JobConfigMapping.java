@@ -164,6 +164,7 @@ public class JobConfigMapping {
         public JobConfigEntry build() {
             if(projectKey == null) { throw new IllegalStateException("The Project Key may not be null"); }
             if(issueType == null) { throw new IllegalStateException("The Issue Type may not be null"); }
+            if(storeCacheJobName == null) { storeCacheJobName = "DEFAULT"; }
             StringFields summary = null;
             StringFields description = null;
 
