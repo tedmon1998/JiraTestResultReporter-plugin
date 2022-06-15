@@ -107,11 +107,13 @@ public class MetadataCache {
      * Method for removing the cache entry
      * @param projectKey
      * @param issueType
+     * @param storeCacheJobName
      */
-    public void removeCacheEntry(String projectKey, String issueType) {
+    public void removeCacheEntry(String projectKey, String issueType, String storeCacheJobName) {
         if(fieldConfigCache.containsKey(projectKey) && fieldConfigCache.get(projectKey).containsKey(issueType)) {
             synchronized (fieldConfigCache.get(projectKey)) {
                 fieldConfigCache.get(projectKey).remove(issueType);
+                fieldConfigCache.get(projectKey).remove(storeCacheJobName);
             }
         }
     }
