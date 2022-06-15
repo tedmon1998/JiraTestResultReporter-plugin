@@ -123,9 +123,11 @@ public class JiraTestDataPublisher extends TestDataPublisher {
      * @param configs a list with the configured fields
      * @param projectKey
      * @param issueType
+     * @param storeCacheJobName
      */
-	@DataBoundConstructor
-	public JiraTestDataPublisher(List<AbstractFields> configs, String projectKey, String issueType,
+    @DataBoundConstructor
+    public JiraTestDataPublisher(List<AbstractFields> configs, String projectKey, String issueType,
+                                 String storeCacheJobName,
                                  boolean autoRaiseIssue, boolean autoResolveIssue, boolean autoUnlinkIssue) {
 
         long defaultIssueType;
