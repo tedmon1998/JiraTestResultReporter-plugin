@@ -141,6 +141,11 @@ public class JobConfigMapping {
             return this;
         }
 
+        public JobConfigEntryBuilder withStoreCacheJobName(String storeCacheJobName) {
+            this.storeCacheJobName = storeCacheJobName;
+            return this;
+        }
+
         public JobConfigEntryBuilder withConfigs(List<AbstractFields> configs) {
             this.configs = configs;
             return this;

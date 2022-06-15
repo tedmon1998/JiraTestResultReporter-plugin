@@ -138,6 +138,7 @@ public class JiraTestDataPublisher extends TestDataPublisher {
         this.jobConfig = new JobConfigMapping.JobConfigEntryBuilder()
                 .withProjectKey(projectKey)
                 .withIssueType(defaultIssueType)
+                .withStoreCacheJobName(storeCacheJobName)
                 .withAutoRaiseIssues(autoRaiseIssue)
                 .withAutoResolveIssues(autoResolveIssue)
                 .withAutoUnlinkIssues(autoUnlinkIssue)
