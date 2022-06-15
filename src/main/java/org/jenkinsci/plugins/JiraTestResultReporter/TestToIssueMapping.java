@@ -85,6 +85,11 @@ public class TestToIssueMapping {
      * @return
      */
     private String getPathToFileMap(Job job) {
+        JobConfigMapping JCM = JobConfigMapping.getInstance();
+        String storeCacheJobName = JCM.getStoreCacheJobName(job);
+        if (storeCacheJobName != "DEFAULT") { // storeCacheJobName != null
+            job = (Job) Jenkins.getInstance().getItemByFullName(storeCacheJobName);
+        }
         return job.getRootDir().toPath().resolve(MAP_FILE_NAME).toString();
     }
 
