@@ -91,6 +91,14 @@ public class JiraTestDataPublisher extends TestDataPublisher {
         return JobConfigMapping.getInstance().getProjectKey(getJobName());
     }
 
+    /**
+     * Getter for the store cache job name
+     * @return the store cache job name
+     */
+    public String getStoreCacheJobName() {
+        return JobConfigMapping.getInstance().getStoreCacheJobName(getJobName());
+    }
+
     public boolean getAutoRaiseIssue() {
         return JobConfigMapping.getInstance().getAutoRaiseIssue(getJobName());
     }
@@ -127,6 +135,7 @@ public class JiraTestDataPublisher extends TestDataPublisher {
      * @param configs a list with the configured fields
      * @param projectKey
      * @param issueType
+     * @param storeCacheJobName
      */
 	@DataBoundConstructor
 	public JiraTestDataPublisher(List<AbstractFields> configs, String projectKey, String issueType,
@@ -142,6 +151,7 @@ public class JiraTestDataPublisher extends TestDataPublisher {
         this.jobConfig = new JobConfigMapping.JobConfigEntryBuilder()
                 .withProjectKey(projectKey)
                 .withIssueType(defaultIssueType)
+                .withStoreCacheJobName(storeCacheJobName)
                 .withAutoRaiseIssues(autoRaiseIssue)
                 .withOverrideResolvedIssues(overrideResolvedIssues)
                 .withAutoResolveIssues(autoResolveIssue)
@@ -515,7 +525,8 @@ public class JiraTestDataPublisher extends TestDataPublisher {
         public TestDataPublisher newInstance(StaplerRequest req, JSONObject json) throws FormException {
             String projectKey = json.getString("projectKey");
             String issueType  = json.getString("issueType");
-            metadataCache.removeCacheEntry(projectKey, issueType);
+            String storeCacheJobName = json.getString("storeCacheJobName");
+            metadataCache.removeCacheEntry(projectKey, issueType, storeCacheJobName);
             return super.newInstance(req, json);
         }
 
@@ -646,6 +657,7 @@ public class JiraTestDataPublisher extends TestDataPublisher {
             }
             String projectKey = jiraPublisherJSON.getString("projectKey");
             Long issueType  = jiraPublisherJSON.getLong("issueType");
+            String storeCacheJobName = jiraPublisherJSON.getString("storeCacheJobName");
 
             // trying to create the issue
             final IssueRestClient issueClient = getRestClient().getIssueClient();

@@ -10,6 +10,9 @@
             <f:entry title="Issue Type" field="issueType">
                 <f:select/>
             </f:entry>
+            <f:entry title="Store Cache Job Name" field="storeCacheJobName">
+                <f:textbox/>
+            </f:entry>
             <f:entry title="Auto raise issues" field="autoRaiseIssue" >
                 <f:checkbox/>
             </f:entry>

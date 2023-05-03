@@ -45,6 +45,7 @@ public class JobConfigMapping {
         public static final long serialVersionUID = 6509568994710878311L; //backwards compatibility
         protected String projectKey;
         protected Long issueType;
+        protected String storeCacheJobName;
         protected List<AbstractFields> configs;
         protected boolean autoRaiseIssue;
         protected boolean overrideResolvedIssues;
@@ -56,6 +57,7 @@ public class JobConfigMapping {
          * Constructor
          * @param projectKey
          * @param issueType
+         * @param storeCacheJobName
          * @param configs list with the configured fields
          */
         public JobConfigEntry(String projectKey, Long issueType, List<AbstractFields> configs,
@@ -63,6 +65,7 @@ public class JobConfigMapping {
                               boolean overrideResolvedIssues) {
             this.projectKey = projectKey;
             this.issueType = issueType;
+            this.storeCacheJobName = storeCacheJobName;
             this.configs = configs;
             this.autoRaiseIssue = autoRaiseIssue;
             this.autoResolveIssue = autoResolveIssue;
@@ -85,6 +88,14 @@ public class JobConfigMapping {
          */
         public String getProjectKey() {
             return projectKey;
+        }
+
+        /**
+         * Getter for the store cache job name
+         * @return
+         */
+        public String getStoreCacheJobName() {
+            return storeCacheJobName;
         }
 
         /**
@@ -146,6 +157,11 @@ public class JobConfigMapping {
             return this;
         }
 
+        public JobConfigEntryBuilder withStoreCacheJobName(String storeCacheJobName) {
+            this.storeCacheJobName = storeCacheJobName;
+            return this;
+        }
+
         public JobConfigEntryBuilder withConfigs(List<AbstractFields> configs) {
             this.configs = configs;
             return this;
@@ -174,6 +190,7 @@ public class JobConfigMapping {
         public JobConfigEntry build() {
             if(projectKey == null) { throw new IllegalStateException("The Project Key may not be null"); }
             if(issueType == null) { throw new IllegalStateException("The Issue Type may not be null"); }
+            if(storeCacheJobName == null) { storeCacheJobName = "DEFAULT"; }
             StringFields summary = null;
             StringFields description = null;
 
@@ -321,12 +338,14 @@ public class JobConfigMapping {
      * Method for setting the last configuration made for a project
      * @param project
      * @param projectKey
+     * @param storeCacheJobName
      * @param issueType
      * @param configs
      */
     public synchronized void saveConfig(Job project,
                                         String projectKey,
                                         Long issueType,
+                                        String storeCacheJobName,
                                         List<AbstractFields> configs,
                                         boolean autoRaiseIssue,
                                         boolean autoResolveIssue,
@@ -385,6 +404,16 @@ public class JobConfigMapping {
     public String getProjectKey(Job project) {
         JobConfigEntry entry = getJobConfigEntry(project);
         return entry != null ? entry.getProjectKey() : null;
+    }
+
+    /**
+     * Getter for the last configured store cache job name
+     * @param project
+     * @return
+     */
+    public String getStoreCacheJobName(Job project) {
+        JobConfigEntry entry = getJobConfigEntry(project);
+        return entry != null ? entry.getStoreCacheJobName() : null;
     }
 
     public boolean getAutoRaiseIssue(Job project) {
