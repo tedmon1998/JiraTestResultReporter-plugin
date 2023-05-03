@@ -15,6 +15,8 @@
  */
 package org.jenkinsci.plugins.JiraTestResultReporter;
 
+import com.atlassian.httpclient.api.ResponseTransformationException;
+import com.atlassian.httpclient.api.UnexpectedResponseException;
 import com.atlassian.jira.rest.client.api.*;
 import com.atlassian.jira.rest.client.api.domain.*;
 import com.atlassian.jira.rest.client.api.domain.Project;
@@ -44,6 +46,7 @@ import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.Stapler;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.bind.JavaScriptMethod;
+import org.kohsuke.stapler.interceptor.RequirePOST;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;
@@ -54,6 +57,7 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -135,8 +139,7 @@ public class JiraTestDataPublisher extends TestDataPublisher {
      */
 	@DataBoundConstructor
 	public JiraTestDataPublisher(List<AbstractFields> configs, String projectKey, String issueType,
-                                 String storeCacheJobName,
-                                 boolean autoRaiseIssue, boolean autoResolveIssue, boolean autoUnlinkIssue) {
+                                 boolean autoRaiseIssue, boolean autoResolveIssue, boolean autoUnlinkIssue, boolean overrideResolvedIssues) {
 
         long defaultIssueType;
         try {
@@ -150,6 +153,7 @@ public class JiraTestDataPublisher extends TestDataPublisher {
                 .withIssueType(defaultIssueType)
                 .withStoreCacheJobName(storeCacheJobName)
                 .withAutoRaiseIssues(autoRaiseIssue)
+                .withOverrideResolvedIssues(overrideResolvedIssues)
                 .withAutoResolveIssues(autoResolveIssue)
                 .withAutoUnlinkIssues(autoUnlinkIssue)
                 .withConfigs(Util.fixNull(configs))
@@ -198,78 +202,121 @@ public class JiraTestDataPublisher extends TestDataPublisher {
             JobConfigMapping.getInstance().saveConfig(project, getJobConfig());
         }
 
+        boolean hasTestData = false;
+        if(JobConfigMapping.getInstance().getOverrideResolvedIssues(project)) {
+            hasTestData |= cleanJobCacheFile(listener, job, getTestCaseResults(testResult));
+        }
+
         if(JobConfigMapping.getInstance().getAutoRaiseIssue(project)) {
-            raiseIssues(listener, project, job, envVars, getTestCaseResults(testResult));
+            hasTestData |= raiseIssues(listener, project, job, envVars, getTestCaseResults(testResult));
         }
 
         if(JobConfigMapping.getInstance().getAutoResolveIssue(project)) {
-            resolveIssues(listener, project, job, envVars, getTestCaseResults(testResult));
+            hasTestData |= resolveIssues(listener, project, job, envVars, getTestCaseResults(testResult));
         }
 
         if(JobConfigMapping.getInstance().getAutoUnlinkIssue(project)) {
-            unlinkIssuesForPassedTests(listener, project, job, envVars, getTestCaseResults(testResult));
+            hasTestData |= unlinkIssuesForPassedTests(listener, project, job, envVars, getTestCaseResults(testResult));
         }
-        return new JiraTestData(envVars);
+        if (hasTestData) {
+            JiraTestData data = new JiraTestData(envVars);
+            TestResultAction action = run.getAction(TestResultAction.class);
+            if (action != null) {
+                List<TestResultAction.Data> dataList = new LinkedList<>();
+                dataList.add(data);
+                action.setData(dataList);
+                return null;
+            }
+            return data;
+        } else {
+            return null;
+        }
 	}
 
-    private void unlinkIssuesForPassedTests(TaskListener listener, Job project, Job job, EnvVars envVars, List<CaseResult> testCaseResults) {
+    private boolean unlinkIssuesForPassedTests(TaskListener listener, Job project, Job job, EnvVars envVars, List<CaseResult> testCaseResults) {
+        boolean unlinked = false;
         for(CaseResult test : testCaseResults) {
             if(test.isPassed() &&  TestToIssueMapping.getInstance().getTestIssueKey(job, test.getId()) != null) {
                 synchronized (test.getId()) {
                     String issueKey = TestToIssueMapping.getInstance().getTestIssueKey(job, test.getId());
                     TestToIssueMapping.getInstance().removeTestToIssueMapping(job, test.getId(), issueKey);
+                    unlinked = true;
                 }
             }
         }
+        return unlinked;
     }
 
-    private void resolveIssues(TaskListener listener, Job project, Job job,
+    private boolean resolveIssues(TaskListener listener, Job project, Job job,
                                EnvVars envVars, List<CaseResult> testCaseResults) {
 
-        for(CaseResult test : testCaseResults) {
-            if(test.isPassed() && test.getPreviousResult() != null && test.getPreviousResult().isFailed()
-                    && TestToIssueMapping.getInstance().getTestIssueKey(job, test.getId()) != null) {
-                synchronized (test.getId()) {
-                    String issueKey = TestToIssueMapping.getInstance().getTestIssueKey(job, test.getId());
-                    IssueRestClient issueRestClient = getDescriptor().getRestClient().getIssueClient();
-                    Issue issue = issueRestClient.getIssue(issueKey).claim();
-                    boolean transitionExecuted = false;
-                    for (Transition transition : issueRestClient.getTransitions(issue).claim()) {
-                        if (transition.getName().toLowerCase().contains("resolve")) {
-                            issueRestClient.transition(issue, new TransitionInput(transition.getId()));
-                            transitionExecuted = true;
-                            break;
+        boolean solved = false;
+        try {
+            for(CaseResult test : testCaseResults) {
+                if(test.isPassed() && test.getPreviousResult() != null && test.getPreviousResult().isFailed()) {
+                    synchronized (test.getId()) {
+                        for (String issueKey: JiraUtils.searchIssueKeys(job, envVars, test)) {
+                            IssueRestClient issueRestClient = getDescriptor().getRestClient().getIssueClient();
+                            Issue issue = issueRestClient.getIssue(issueKey).claim();
+                            boolean transitionExecuted = false;
+                            for (Transition transition : issueRestClient.getTransitions(issue).claim()) {
+                                if (transition.getName().toLowerCase().contains("resolve")) {
+                                    issueRestClient.transition(issue, new TransitionInput(transition.getId()));
+                                    transitionExecuted = true;
+                                    solved = true;
+                                    break;
+                                }
+                            }
+        
+                            if (!transitionExecuted) {
+                                listener.getLogger().println("Could not find transition to resolve issue " + issueKey);
+                            }
                         }
                     }
-
-                    if (!transitionExecuted) {
-                        listener.getLogger().println("Could not find transition to resolve issue " + issueKey);
-                    }
-
                 }
             }
+        } catch (RestClientException | ResponseTransformationException | UnexpectedResponseException e) {
+            listener.error("Could not connect properly to Jira server. Please review config details\n");
+            e.printStackTrace(listener.getLogger());
+            solved = false;
         }
+        return solved;
+    }
+    private boolean cleanJobCacheFile(TaskListener listener, Job job,
+                                      List<CaseResult> testCaseResults) {
+        boolean cleaUp = false;
+        try {
+            cleaUp = JiraUtils.cleanJobCacheFile(testCaseResults, job);
+        } catch (RestClientException e){
+            listener.error("Could not do the clean up of the JiraIssueJobConfigs.json\n");
+            e.printStackTrace(listener.getLogger());
+            throw e;
+        }
+        return cleaUp;
     }
 
-    private void raiseIssues(TaskListener listener, Job project, Job job,
+    private boolean raiseIssues(TaskListener listener, Job project, Job job,
                              EnvVars envVars,List<CaseResult> testCaseResults) {
-        for(CaseResult test : testCaseResults) {
-            if(test.isFailed() && TestToIssueMapping.getInstance().getTestIssueKey(job, test.getId()) == null) {
-                synchronized (test.getId()) { //avoid creating duplicated issues
-                    if(TestToIssueMapping.getInstance().getTestIssueKey(job, test.getId()) != null) {
-                        continue;
-                    }
+        boolean raised = false;
+        try {
+            for(CaseResult test : testCaseResults) {
+                if(test.isFailed()) {
                     try {
-                        String issueKey = JiraUtils.createIssueInput(project, test, envVars);
-                        TestToIssueMapping.getInstance().addTestToIssueMapping(job, test.getId(), issueKey);
-                        listener.getLogger().println("Created issue " + issueKey + " for test " + test.getFullDisplayName());
+                        JiraUtils.createIssue(job, project, envVars, test, JiraIssueTrigger.JOB);
+                        raised = true;
                     } catch (RestClientException e) {
                         listener.error("Could not create issue for test " + test.getFullDisplayName() + "\n");
                         e.printStackTrace(listener.getLogger());
+                        throw e;
                     }
                 }
             }
+        } catch (RestClientException | ResponseTransformationException | UnexpectedResponseException e) {
+            listener.error("Could not connect properly to Jira server. Please review config details\n");
+            e.printStackTrace(listener.getLogger());
+            raised = false;
         }
+        return raised;
     }
 
     private List<CaseResult> getTestCaseResults(TestResult testResult) {
@@ -490,11 +537,13 @@ public class JiraTestDataPublisher extends TestDataPublisher {
          * @param password
          * @return
          */
+        @RequirePOST
         public FormValidation doValidateGlobal(@QueryParameter String jiraUrl,
                                                @QueryParameter String username,
                                                @QueryParameter String password
                                               ) {
 
+            Jenkins.get().checkPermission(Jenkins.ADMINISTER);
             String serverName;
             try {
                 new URL(jiraUrl);
