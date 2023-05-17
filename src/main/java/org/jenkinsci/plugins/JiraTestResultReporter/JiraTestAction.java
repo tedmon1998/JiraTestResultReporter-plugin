@@ -17,10 +17,7 @@ package org.jenkinsci.plugins.JiraTestResultReporter;
 
 import com.atlassian.jira.rest.client.api.IssueRestClient;
 import com.atlassian.jira.rest.client.api.RestClientException;
-import com.atlassian.jira.rest.client.api.domain.BasicIssue;
 import com.atlassian.jira.rest.client.api.domain.Issue;
-import com.atlassian.jira.rest.client.api.domain.input.IssueInput;
-import com.atlassian.jira.rest.client.api.domain.input.IssueInputBuilder;
 import io.atlassian.util.concurrent.Promise;
 import hudson.EnvVars;
 import hudson.Extension;
@@ -29,11 +26,10 @@ import hudson.matrix.MatrixProject;
 import hudson.model.*;
 import hudson.tasks.junit.CaseResult;
 import hudson.tasks.junit.TestAction;
-import hudson.tasks.test.TestResult;
 import hudson.util.FormValidation;
 import jenkins.model.Jenkins;
-import org.apache.tools.ant.taskdefs.condition.And;
-import org.jenkinsci.plugins.JiraTestResultReporter.config.AbstractFields;
+
+import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.plugins.JiraTestResultReporter.restclientextensions.FullStatus;
 import org.kohsuke.stapler.Ancestor;
 import org.kohsuke.stapler.Stapler;
@@ -112,11 +108,11 @@ public class JiraTestAction extends TestAction implements ExtensionPoint, Descri
 
         this.testData = testData;
         this.test = test;
-        issueKey = TestToIssueMapping.getInstance().getTestIssueKey(job, test.getId());
-        if (issueKey != null) {
+        for (String key: JiraUtils.searchIssueKeys(job, testData.getEnvVars(), test)) {
+            issueKey = key;
             IssueRestClient issueRestClient = JiraUtils.getJiraDescriptor().getRestClient().getIssueClient();
             try {
-                Issue issue = issueRestClient.getIssue(issueKey).claim();
+                Issue issue = issueRestClient.getIssue(key).claim();
                 issueStatus = issue.getStatus().getName();
                 issueSummary = issue.getSummary();
                 JiraTestDataPublisher.JiraTestDataPublisherDescriptor jiraDescriptor = JiraUtils.getJiraDescriptor();
@@ -280,26 +276,19 @@ public class JiraTestAction extends TestAction implements ExtensionPoint, Descri
 
     }
 
-    /**
-     * Method for creating an issue in jira, called from badge.jelly
+        /**
+     * Method for creating an issue in Jira, called from badge.jelly
      * 
-     * @return null if everything was Ok, an object with the error message if not
+     * @return a {@link FormValidation} with the result of the creation operation
      */
     @JavaScriptMethod
-    public String createIssue() {
-        synchronized (test.getId()) { // avoid creating duplicated issues
-            if (TestToIssueMapping.getInstance().getTestIssueKey(job, test.getId()) != null) {
-                return null;
-            }
-
-            try {
-                String issueKey = JiraUtils.createIssueInput(project, test, testData.getEnvVars());
-                setIssueKey(issueKey);
-                return issueKey;
-            } catch (RestClientException e) {
-                JiraUtils.logError("Error when creating issue", e);
-                return e.toString();
-            }
+    public FormValidation createIssue() {
+        try {
+            String id = JiraUtils.createIssue(job, project, testData.getEnvVars(), test, JiraIssueTrigger.UI);
+            return StringUtils.isBlank(id) ? FormValidation.error("Duplicate already exists") : setIssueKey(id);  
+        } catch (RestClientException e) {
+            JiraUtils.logError("Error when creating issue", e);
+            return FormValidation.error(JiraUtils.getErrorMessage(e, "\n"));
         }
     }
 
@@ -309,17 +298,17 @@ public class JiraTestAction extends TestAction implements ExtensionPoint, Descri
      * @param issueKey
      */
     public boolean isValidIssueKey(String issueKey) {
-        if (JobConfigMapping.getInstance().getIssueKeyPattern(project).matcher(issueKey).matches() == false)
-            return false;
-        IssueRestClient restClient = JiraUtils.getJiraDescriptor().getRestClient().getIssueClient();
-        try {
-            Promise<Issue> issuePromise = restClient.getIssue(issueKey);
-            Issue issue = issuePromise.claim();
-        } catch (RestClientException e) {
-            JiraUtils.logError("Error when validating issue", e);
-            return false;
-        }
-        return true;
+    if (JobConfigMapping.getInstance().getIssueKeyPattern(project).matcher(issueKey).matches() == false)
+        return false;
+    IssueRestClient restClient = JiraUtils.getJiraDescriptor().getRestClient().getIssueClient();
+    try {
+        Promise<Issue> issuePromise = restClient.getIssue(issueKey);
+        issuePromise.claim();
+    } catch (RestClientException e) {
+        JiraUtils.logError("Error when validating issue", e);
+        return false;
     }
+    return true;
+  }
 
 }

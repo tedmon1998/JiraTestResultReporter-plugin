@@ -1,5 +1,6 @@
 <?jelly escape-by-default='true'?>
-<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler">
+
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:l="/lib/layout">
 
     <script>
         /*
@@ -20,35 +21,38 @@
         proxyDictionary[rootId + "-resURL"] = "${resURL}";
     </script>
 
+
     <div id="root">
-        <j:choose>
-            <j:when test="${ it.issueKey == null and it.isTestFailing() == true }">
-                <img src="${imagesURL}/16x16/document_add.png" onClick="hideshow(document.getElementById('jira-${it}'))"
-                    height="16" width="16" style="cursor:pointer" /> No issue
-                <img src="${imagesURL}/spinner.gif" id="spinner-${it}" style="display:none" />
-                <div id="jira-${it}" style="display:none">
-                    <a id="link" href="#jira"
-                        onClick="createNewIssue(this.id, document.getElementById('spinner-${it}'), document.getElementById('jiraErrors-${it}'))">Create
-                        new issue</a><br />
-                    Or <input field="key" id="issueKeyInput-${it}" type="text" value="${it.issueKey}" />
-                    <img id="link" src="${resURL}/plugin/JiraTestResultReporter/submit.png" height="16" width="16"
-                        style="cursor:pointer"
-                        onClick="doSubmit(this.id, document.getElementById('issueKeyInput-${it}'), document.getElementById('spinner-${it}'), document.getElementById('jiraErrors-${it}'))" />
-                    <st:include page="helpIssueKeyInput.jelly" />
-                    <div id="jiraErrors-${it}" />
-                </div>
-            </j:when>
-            <j:when test="${ it.issueKey != null }">
-                <st:nbsp /><img id="link" src="${resURL}/plugin/JiraTestResultReporter/remove.png"
-                    onClick="doClear(this.id)" height="16" width="16" style="cursor:pointer" />
-                <st:nbsp />
-                <a id="issue-link" href="${it.issueUrl}" title="${it.issueSummary}" target="_blank">${it.issueKey}</a>
-                <st:nbsp />
-                <st:include page="issueStatus.jelly" />
-            </j:when>
-        </j:choose>
-        <st:nbsp />
-    </div>
+    <j:choose>
+        <j:when test="${it.issueKey == null and it.isTestFailing() == true}">
+            <img src="${imagesURL}/16x16/document_add.png" onClick="hideshow(document.getElementById('jira-${it}'))"
+                height="16" width="16" style="cursor:pointer" /> No issue
+            <img src="${imagesURL}/spinner.gif" id="spinner-${it}" style="display:none" />
+            <div id="jira-${it}" style="display:none">
+                <a id="link" href="#jira"
+                    onClick="createNewIssue(this.id, document.getElementById('spinner-${it}'), document.getElementById('jiraErrors-${it}'))">Create
+                    new issue</a><br />
+                Or <input field="key" id="issueKeyInput-${it}" type="text" value="${it.issueKey}" />
+                <img id="link" src="${resURL}/plugin/JiraTestResultReporter/submit.png" height="16" width="16"
+                    style="cursor:pointer"
+                    onClick="doSubmit(this.id, document.getElementById('issueKeyInput-${it}'), document.getElementById('spinner-${it}'), document.getElementById('jiraErrors-${it}'))" />
+                <st:include page="helpIssueKeyInput.jelly" />
+                <div id="jiraErrors-${it}" />
+            </div>
+        </j:when>
+        <j:when test="${it.issueKey != null}">
+            <st:nbsp /><img id="link" src="${resURL}/plugin/JiraTestResultReporter/remove.png"
+                onClick="doClear(this.id)" height="16" width="16" style="cursor:pointer" />
+            <st:nbsp />
+            <a id="issue-link" href="${it.issueUrl}" title="${it.issueSummary}" target="_blank">${it.issueKey}</a>
+            <st:nbsp />
+            <st:include page="issueStatus.jelly" />
+        </j:when>
+    </j:choose>
+    <st:nbsp />
+</div>
+
+  
 
 
     <script>
